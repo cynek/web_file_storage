@@ -1,0 +1,10 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    sleepy_penguin (3.2.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  sleepy_penguin
