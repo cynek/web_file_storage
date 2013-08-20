@@ -1,4 +1,4 @@
 # encoding : utf-8
 
-class Process
+class Request
 end
