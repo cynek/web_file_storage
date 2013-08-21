@@ -3,15 +3,12 @@ require 'spec_helper'
 
 describe Master do
   let!(:manager) { double(WorkerManager, :work => true) }
-  let!(:tcp_server) { double(WorkerManager, :accept => socket) }
-  let!(:socket) { double(TCPSocket) }
-  let!(:parser) { double(Parser, :parse => request) }
-  let!(:request) { double(Request) }
+  let!(:tcp_server) { double(WorkerManager, :accept => connection_socket) }
+  let!(:connection_socket) { double(TCPSocket) }
 
   before do
     WorkerManager.stub(:new).and_return(manager)
     TCPServer.stub(:new).and_return(tcp_server)
-    Parser.stub(:new).and_return(parser)
   end
 
   describe ".new" do
@@ -30,8 +27,8 @@ describe Master do
   describe "#listen" do
     after { catch(:rspec_loop_stop) { subject.listen } }
     it "loops listen and send request to manger" do
-      manager.should_receive(:work).with(request)
-      manager.should_receive(:work).with(request)
+      manager.should_receive(:work).with(connection_socket)
+      manager.should_receive(:work).with(connection_socket)
       manager.should_receive(:work).and_throw(:rspec_loop_stop)
     end
   end
