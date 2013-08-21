@@ -1,9 +1,13 @@
 # encoding : utf-8
-require './request'
+require './task'
 
-class RequestSend < Request
-  # класс запроса на скачивание файла с сервера
+class SendTask < Task
+  # класс для скачивания файла с сервера
   attr_accessor :file_path,     # путь к файлу  
                 :seek_start,    # смещение от начала файла для докачки
                 :seek_end       # конец диапазона считывания файла
-end # class RequestSend
+
+  def execute
+    # TODO запись файлов в сокет
+  end
+end # class SendTask

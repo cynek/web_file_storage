@@ -1,65 +1,85 @@
 # encoding : utf-8
 require './socket_utils'
-require './request_receive'
-require './request_send'
+require './receive_task'
+require './send_task'
 
-module RequestBuilder
-  class Parser
-    GET = "GET"
-    POST = "POST"
-    ACCEPT_METHODS = [GET, POST]
-    # парсер будет считывать данные из сокета
-    # определяет тип запроса, заголовки, передаёт сокет дальше
-    # TODO rspec
-    include SocketUtils
+module TaskCreator
 
-    def parse(socket) # парсим данные в socket          
-      raise "Connection not established" unless socket
+  GET = "GET"
+  POST = "POST"
+  ACCEPT_METHODS = [GET, POST]
 
-      request_method, uri, protocol =  parse_request(socket)     
-      raise "405 method #{request_method} not allowed" unless ACCEPT_METHODS.include? request_method 
-      headers = parse_headers(socket)
-      
-      # создаём запрос в зависимости от метода
-      case request_method
+class TaskBuilder
+  # = EXAMPLE  
+  #   request = Parser.parse(socket)
+  #   task = TaskBuilder.create_task(request[:method], request[:uri], request[:headers], request[:socket])
+  #   task.execute
+  
+  def self.create_task(request_method, uri, headers, body)   
+    case request_method
       when GET
-        # создаём RequestSend
-        request = RequestSend.new do |request|
-          request.socket = socket
-          request.file_path = uri                  
+        SendTask.new(body) do |task|
+          task.file_path = uri                  
           range = header_value( 'bytes', headers['range'] )
+
           if range
             range = range.split('-')
             if range[0] and range[1]
               raise "Incorrect range" if range[0].to_i > range[1].to_i
             end
-            request.seek_start = range[0].to_i
-            request.seek_end = range[1].to_i
+
+            task.seek_start = range[0].to_i
+            task.seek_end = range[1].to_i
           end
         end
       when POST
-        # создаём RequestReceive
-        request = RequestReceive.new do |request|
-          request.socket = socket
-          request.content_length = headers['content-length'][0].to_i
-          request.boundary = header_value( 'boundary', headers['content-type'] )
+        ReceiveTask.new(body) do |task|
+          task.content_length = headers['content-length'][0].to_i
+          task.boundary = header_value( 'boundary', headers['content-type'] )                  
         end
-      end      
-    end
+      end
+  end
 
-    private
+  private
 
-    def header_value(name, header)
+    def self.header_value(name, header)
       # получить значение ключа по имени из составного заголовка
       # типа [multipart/form-data; boundary="Asrf456BGe4h"]
       value = nil
       header.each do |line|
         if %r[^.*#{name}=(.*[^;$])$] =~ line # тут какая-то бага, если писать /^.*#{name}=(.*[^;$])$/o - глючит
           value = $1
-        end 
+        end
       end
       return value
     end
+
+end # class TaskBuilder
+
+class Parser
+  # парсер будет считывать данные из сокета
+  # определяет тип запроса, заголовки, передаёт сокет дальше
+  # TODO rspec  
+
+  def self.parse(socket) # парсим данные в socket          
+    raise "Connection not established" unless socket
+
+    request_method, uri, protocol =  parse_request(socket)     
+    raise "405 method #{request_method} not allowed" unless ACCEPT_METHODS.include? request_method 
+    headers = parse_headers(socket)
+
+    request = {}
+    request[:method] = request_method
+    request[:uri] = uri
+    request[:headers] = headers
+    request[:socket] = socket
+    return request
+  end
+
+  private
+
+  class << self
+    include SocketUtils
 
     def parse_request(socket) # определить метод, URI и протокол
       request_line = read_line(socket)
@@ -73,14 +93,14 @@ module RequestBuilder
       end
     end
 
-    def parse_headers(socket) # парсим заголовки     
+    def parse_headers(socket) # парсим заголовки
       raw_header = []
       while line = read_line(socket)
         break if /\A\r?\n\z/ =~ line
         raw_header << line
       end
 
-      header = Hash.new { |h,k| h[k] = [] } 
+      header = Hash.new { |h,k| h[k] = [] }
       name = nil
       raw_header.each do |line|
         case line
@@ -108,25 +128,31 @@ module RequestBuilder
 
       header
     end
-  end # class Parser
-end # module RequestBuilder
+  end
+
+end # class Parser
+end
 
 # test case
-parser = RequestBuilder::Parser.new
+
 
 File.open('examples/http_post.txt', 'r') do |file| 
-  request = parser.parse(file)
-  puts request.class
-  puts request.content_length
-  puts request.boundary
+  request = TaskCreator::Parser.parse(file)
+  task = TaskCreator::TaskBuilder.create_task(request[:method], request[:uri], request[:headers], request[:socket])
+
+  puts task.class
+  puts task.content_length
+  puts task.boundary
 end
 
 1.times { puts }
 
 File.open('examples/http_get.txt', 'r') do |file|
-  request = parser.parse(file)
-  puts request.class
-  puts request.file_path
-  puts request.seek_start
-  puts request.seek_end
+  request = TaskCreator::Parser.parse(file)
+  task = TaskCreator::TaskBuilder.create_task(request[:method], request[:uri], request[:headers], request[:socket])
+
+  puts task.class
+  puts task.file_path
+  puts task.seek_start
+  puts task.seek_end
 end
