@@ -1,5 +1,7 @@
+# encoding : utf-8
 require './socket_utils'
-require './request'
+require './request_receive'
+require './request_send'
 
 module RequestBuilder
   class Parser
@@ -24,8 +26,16 @@ module RequestBuilder
         # создаём RequestSend
         request = RequestSend.new do |request|
           request.socket = socket
-          request.file_path = uri
-          request.seek_position = 0 # todo seek position        
+          request.file_path = uri                  
+          range = header_value( 'bytes', headers['range'] )
+          if range
+            range = range.split('-')
+            if range[0] and range[1]
+              raise "Incorrect range" if range[0].to_i > range[1].to_i
+            end
+            request.seek_start = range[0].to_i
+            request.seek_end = range[1].to_i
+          end
         end
       when POST
         # создаём RequestReceive
@@ -39,25 +49,27 @@ module RequestBuilder
 
     private
 
+    def header_value(name, header)
+      # получить значение ключа по имени из составного заголовка
+      # типа [multipart/form-data; boundary="Asrf456BGe4h"]
+      value = nil
+      header.each do |line|
+        if %r[^.*#{name}=(.*[^;$])$] =~ line # тут какая-то бага, если писать /^.*#{name}=(.*[^;$])$/o - глючит
+          value = $1
+        end 
+      end
+      return value
+    end
+
     def parse_request(socket) # определить метод, URI и протокол
       request_line = read_line(socket)
       raise "bad request line" unless request_line
 
-      if /^(\S+)\s+(\/\S+)\s+(\S+)$/ =~ request_line    
+      if /^(\S+)\s+(\/\S+)\s+(\S+)$/ =~ request_line
         [$1, $2, $3]
       else
         rl = request_line.sub(/\r?\n\z/, '')
         raise "bad request line `#{rl}'"
-      end
-    end
-
-    def header_value(name, header)
-      # получить значение ключа по имени из составного заголовка
-      # типа [multipart/form-data; boundary="Asrf456BGe4h"]
-      header.each do |line|
-        if /^.*#{name}=(.*[^;$])$/o =~ line
-          return $1
-        end 
       end
     end
 
@@ -68,7 +80,7 @@ module RequestBuilder
         raw_header << line
       end
 
-      header = Hash.new([].freeze)
+      header = Hash.new { |h,k| h[k] = [] } 
       name = nil
       raw_header.each do |line|
         case line
@@ -109,12 +121,12 @@ File.open('examples/http_post.txt', 'r') do |file|
   puts request.boundary
 end
 
-3.times { puts }
+1.times { puts }
 
 File.open('examples/http_get.txt', 'r') do |file|
   request = parser.parse(file)
   puts request.class
   puts request.file_path
-  puts request.seek_position
+  puts request.seek_start
+  puts request.seek_end
 end
-
