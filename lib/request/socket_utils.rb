@@ -23,6 +23,28 @@ module SocketUtils
     data
   end
 
+  ###############################
+  ###   write socket utils    ###
+  ###############################
+
+  def send_file(socket, filename)
+    #отправка файла
+    File.open(filename, 'rb') do |file|
+      while block = file.read(BUFFER_SIZE)
+        socket.write block
+      end
+    end #File.open
+  end
+  
+  def get_file(socket, filename)
+    # запись в файл из сокета
+    File.open(filename, 'w') do |file|
+      while message = socket.read(BUFFER_SIZE)
+        file.write
+      end
+    end #File.open
+  end
+
   private
 
   def read_block(socket, size = BUFFER_SIZE)
