@@ -9,5 +9,7 @@ class SendTask < Task
 
   def execute
     # TODO запись файлов в сокет
+    send_file(@socket, @file_path, @seek_start, @seek_end)
   end
+
 end # class SendTask

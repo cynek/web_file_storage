@@ -1,3 +1,4 @@
+# encoding : utf-8
 module SocketUtils
   # функции для чтения и записи в сокет
   BUFFER_SIZE = 4096 # размер блока на считываение данных из IO
@@ -15,7 +16,7 @@ module SocketUtils
     data = ''
     while remaining_size > 0
       size = [BUFFER_SIZE, remaining_size].min
-      break unless buf = read_block(socket, size)
+      break unless (buf = read_block(socket, size))
       remaining_size -= buf.bytesize
       data += buf          
     end 
@@ -27,11 +28,24 @@ module SocketUtils
   ###   write socket utils    ###
   ###############################
 
-  def send_file(socket, filename)
+  def send_file(socket, filename, s_start = nil, s_end = nil)
     #отправка файла
     File.open(filename, 'rb') do |file|
-      while block = file.read(BUFFER_SIZE)
-        socket.write block
+      s_start = s_start || 0
+      raise "Invalid start seek position #{s_start}" if s_start < 0
+
+      remaining_size = (s_end || file.bytesize) - (s_start || 0)
+      raise "Invalid range (#{s_start}..#{s_end})" if remaining_size < 0
+
+      raise 'Range bigger than filesize' if remaining_size + s_start > file.bytesize
+
+      file.pos = s_start
+      while remaining_size > 0
+        size = [BUFFER_SIZE, remaining_size].min
+        buff = file.read(size)
+        break unless buff
+        remaining_size -= buff.bytesize
+        socket.write buff
       end
     end #File.open
   end
@@ -39,8 +53,8 @@ module SocketUtils
   def get_file(socket, filename)
     # запись в файл из сокета
     File.open(filename, 'w') do |file|
-      while message = socket.read(BUFFER_SIZE)
-        file.write
+      while (buff = socket.read(BUFFER_SIZE))
+        file.write buff
       end
     end #File.open
   end
