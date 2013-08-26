@@ -3,7 +3,7 @@ require './task'
 
 class SendTask < Task
   # класс для скачивания файла с сервера
-  attr_accessor :file_path,     # путь к файлу  
+  attr_accessor :file_path,     # путь к файлу
                 :seek_start,    # смещение от начала файла для докачки
                 :seek_end       # конец диапазона считывания файла
 

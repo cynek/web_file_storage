@@ -10,10 +10,10 @@ Keep-Alive: 300
 --Asrf456BGe4h
 Content-Disposition: form-data; name="DestAddress"
 
-brutal-vasya@example.com—Asrf456BGe4h
+brutal-vasya@example.com--Asrf456BGe4h
 Content-Disposition: form-data; name="MessageTitle"
 
-Я негодую—Asrf456BGe4h
+Я негодую--Asrf456BGe4h
 Content-Disposition: form-data; name="MessageText"
 
 Привет, Василий! Твой ручной лев, которого ты оставил

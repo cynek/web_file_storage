@@ -23,7 +23,7 @@ module TaskCreator
       when GET
         SendTask.new(request.body) do |task|
           task.file_path = request.uri
-          range = header_value( 'bytes', request.headers.fetch('range', false) )
+          range = header_value('bytes', request.headers.fetch('range', false))
 
           if range
             range = range.split('-')
@@ -115,7 +115,7 @@ module TaskCreator
             header[name] = [] unless header.key?(name)
             header[name] << value
           when /^\s+(.*?)\s*\z/m
-            value = $1           
+            value = $1
             raise "bad header '#{line}'" unless name
             header[name][-1] << ' ' << value
           else
