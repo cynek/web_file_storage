@@ -18,8 +18,8 @@ module SocketUtils
       size = [BUFFER_SIZE, remaining_size].min
       break unless (buf = read_block(socket, size))
       remaining_size -= buf.bytesize
-      data += buf          
-    end 
+      data += buf
+    end
 
     data
   end
@@ -29,14 +29,20 @@ module SocketUtils
   ###############################
 
   def send_file(socket, filename, s_start = nil, s_end = nil)
-    #отправка файла
-    File.open(filename, 'rb') do |file|
+    # отправка файла
+    File.open(filename, 'rb') do |file|            
       s_start = s_start || 0
+      raise "Invalid start seek position #{s_start}" unless s_start.is_a? Fixnum
       raise "Invalid start seek position #{s_start}" if s_start < 0
+      raise 'Start position bigger than filesize' if s_start > file.bytesize
 
-      remaining_size = (s_end || file.bytesize) - (s_start || 0)
+      s_end = s_end || file.bytesize
+      raise "Invalid end seek position #{s_start}" unless s_end.is_a? Fixnum
+      raise "Invalid end seek position #{s_end}" if s_end < 0
+      raise 'End position bigger than filesize' if s_end > file.bytesize
+
+      remaining_size = s_end - s_start
       raise "Invalid range (#{s_start}..#{s_end})" if remaining_size < 0
-
       raise 'Range bigger than filesize' if remaining_size + s_start > file.bytesize
 
       file.pos = s_start
@@ -47,16 +53,14 @@ module SocketUtils
         remaining_size -= buff.bytesize
         socket.write buff
       end
-    end #File.open
+    end # File.open
   end
   
   def get_file(socket, filename)
     # запись в файл из сокета
     File.open(filename, 'w') do |file|
-      while (buff = socket.read(BUFFER_SIZE))
-        file.write buff
-      end
-    end #File.open
+      file.write buff while (buff = socket.read(BUFFER_SIZE))
+    end # File.open
   end
 
   private
@@ -67,8 +71,8 @@ module SocketUtils
   end
 
   def read_socket(socket, method, *args)
-    #TODO таймаут на чтение из сокета
-    return socket.send(method, *args)
+    # TODO таймаут на чтение из сокета
+    socket.send(method, *args)
   end
 
 end # module SocketUtils
