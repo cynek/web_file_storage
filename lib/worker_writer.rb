@@ -9,10 +9,10 @@ class WorkerWriter
 
   # Public: Отправить соединение воркеру
   #
-  # socket - Socket для записи в воркер
+  # fd - Integer дескриптор соединения для записи в воркер
   #
   # Returns nothing
-  def send!(socket)
-
+  def send!(fd)
+    @socket.send(fd.to_s, 0)
   end
 end

@@ -2,9 +2,9 @@
 require 'socket'
 
 class Master
-  PORT = 80
+  PORT = 8080
   HOST = 'localhost'
-  WORKERS_COUNT = 5
+  WORKERS_COUNT = 1
 
   def initialize(workers_count = WORKERS_COUNT)
     @manager = WorkerManager.new(workers_count)
@@ -13,7 +13,7 @@ class Master
 
   def listen
     loop do
-      @manager.work @listener.accept
+      @manager.work @listener.sysaccept
     end
   end
 end
