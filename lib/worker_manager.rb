@@ -10,33 +10,38 @@ class WorkerManager
     @workers = Array.new(workers_counts) do
       # create socket or pipe?
       master_socket, worker_socket = Socket.pair(:UNIX, :DGRAM, 0)
-      @epoll.add(worker_socket, SP::Epoll::IN | SP::Epoll::ET)
+      @epoll.add(master_socket, SP::Epoll::OUT)
 
       pid = Process.fork do
         master_socket.close
         WorkerReader.new(worker_socket)
       end
+      worker_socket.close
 
       WorkerWriter.new(master_socket, pid)
     end
   end
 
-  # Public: Быстро отправляет запрос воркеру и возвращает контекст
+  # Public: Быстро отправляет дескриптор запроса воркеру и возвращает контекст
   #
-  # socket - TCPSocket
+  # connect_fd - Integer дескриптор соединения
   #
   # Returns true, false - если все воркеры заняты
-  def work(socket)
+  def work(connect_fd)
     worker = get_ready_worker
-    worker.send! socket
+    return false if worker.nil?
+    worker.send! connect_fd
   end
 
   private
 
-  # Private: Найти и инстанциировать свободный (готовый читать) воркер
+  # Private: Найти свободный (готовый читать) воркер
   #
   # Returns Worker
   def get_ready_worker
-
+    @epoll.wait do |_, socket|
+      worker = workers.detect {|w| w.socket.fileno == socket.fileno }
+      return worker unless worker.nil?
+    end
   end
 end
