@@ -2,8 +2,18 @@
 
 module Parser
   class Parser    
-
-    def self.parse(socket) # парсим данные, полученные в socket
+    # Parser возвращает request_method, uri, header полученные из io
+    #
+    # Example:
+    #
+    #  # socket: IO object
+    #  # request_method: String
+    #  # request_method: String
+    #  # header: Hash
+    #  request_method, uri, header = Parser::Parser.parse(socket)
+    
+    def self.parse(socket)
+      # парсим данные, полученные в socket
       request_method, uri = parse_request_line(socket)
       headers = parse_headers(socket)
       return request_method, uri, headers
@@ -13,12 +23,11 @@ module Parser
 
     class << self
       def parse_request_line(socket)
-        # определить метод, URI и протокол
-        request_line = socket.gets
+        # определить метод и URI
+        request_line = socket.gets.chomp
 
-        regex = %r[^(?<request_method>\S+)\s+    # GET, POST, etc
-                   (?<uri>\/\S+)\s+              # URI
-                   (\S+)$]x                      # protocol
+        regex = %r[\A(?<request_method>\S+)\s+    # GET, POST, etc
+                   (?<uri>\/\S+)\s+\S+]x          # URI & tail
 
         match_data = regex.match request_line 
         if match_data
@@ -44,8 +53,7 @@ module Parser
           match_data = header_regex.match line 
           if match_data
             name = match_data[:header_name].chomp
-            value = match_data[:header_value].chomp
-            header[name] = [] unless header.key?(name)
+            value = match_data[:header_value].chomp            
             header[name] << value
           end                 
         end
@@ -53,5 +61,5 @@ module Parser
         header
       end
     end
-  end
+  end # class Parser
 end # module Parser
