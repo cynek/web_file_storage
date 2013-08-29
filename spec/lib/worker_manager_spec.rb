@@ -4,8 +4,8 @@ require 'spec_helper'
 describe WorkerManager do
   let(:workers_count) { 1 }
   let(:epoll) { double(SP::Epoll, :add => true) }
-  let(:master_socket) { double(Socket) }
-  let(:worker_socket) { double(Socket) }
+  let(:master_socket) { double(Socket, :close => true) }
+  let(:worker_socket) { double(Socket, :close => true) }
   let(:worker_reader) { double(WorkerReader) }
   let(:worker_writer) { double(WorkerWriter) }
   let(:pid) { 666 }
@@ -22,7 +22,7 @@ describe WorkerManager do
   describe ".new" do
     after { subject }
 
-    it { epoll.should_receive(:add).with(worker_socket, SP::Epoll::IN | SP::Epoll::ET) }
+    it { epoll.should_receive(:add).with(master_socket, SP::Epoll::OUT) }
 
     it "forks process workers_count times and does Worker.new for each" do
       Process.should_receive(:fork).exactly(workers_count).times do |&worker_block|
