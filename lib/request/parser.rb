@@ -6,16 +6,15 @@ module Parser
 # Example:
 #
 #  # socket: IO object
-#  # request_method: String
-#  # request_method: String
-#  # header: Hash
-#  request_method, uri, header = Parser.parse(socket)
+#  request = Parser.parse(socket)
+
+  Request = Struct.new(:request_method, :uri, :headers, :socket)
 
   def self.parse(socket)
-    # парсим данные, полученные в socket
+    # парсим данные, полученные в socket    
     request_method, uri = parse_request_line(socket)
-    headers = parse_headers(socket)
-    return request_method, uri, headers
+    headers = parse_headers(socket)    
+    Request.new(request_method, uri, headers, socket)
   end
 
   private
