@@ -12,9 +12,9 @@ listener = TCPServer.new(HOST, PORT)
 
 WORKERS_COUNT.times do
   fork do
-    Server::AcceptanceHandler.new(listener)
+    MyServer::AcceptanceHandler.new(listener)
     loop do
-      Server::InitiationDispatcher.instance.handle_events
+      MyServer::InitiationDispatcher.instance.handle_events
     end
   end
 end
