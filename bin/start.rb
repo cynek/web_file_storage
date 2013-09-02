@@ -12,11 +12,9 @@ class FileApp
 
     request = Parser.parse(env[:socket])
 
-
     [200, request[:headers], ['get from rack!']]
   end
 
 end
  
 Rack::Handler::ServerHandler.run FileApp.new
-
