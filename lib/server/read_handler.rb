@@ -20,17 +20,20 @@ module Server
           @env[:socket] = @connection
           status, headers, body = @app.call(@env)
 
-          $stdout.print "Status: #{status}\r\n"
+          @connection.print "Status: #{status}\r\n"
             headers.each do |k, vs|
             vs.each do |v|
-              $stdout.print "#{k}: #{v}\r\n"
+              @connection.print "#{k}: #{v}\r\n"
             end
+            @connection
           end
 
           body.each do |part|
-            $stdout.print part
-            $stdout.flush
+            @connection.print part
+            @connection.flush
           end
+
+          @connection.close
 
 
 #          received_str = (@connection.recv(255)).strip

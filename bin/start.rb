@@ -5,12 +5,13 @@ Dir[File.join("../#{File.dirname(__FILE__)}", 'lib/rack/handler', '*.rb')].each 
 
 require 'rubygems'
 require 'rack'
- 
+
 class FileApp
   def call(env)
     puts "process #{Process.pid} \nenv: #{env}"
 
     request = Parser.parse(env[:socket])
+    #TODO приложение для отправки файлов в body
 
     [200, request[:headers], ['get from rack!']]
   end
