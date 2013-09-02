@@ -39,8 +39,6 @@ module Rack
         Process.waitall
         listener.close
       end
-    end
-
-    register :server_handler, ServerHandler
-  end
+    end # module ServerHandler
+  end # module Handler
 end

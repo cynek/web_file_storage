@@ -24,6 +24,7 @@ module Parser
       # определить метод и URI
       request_line = socket.gets
       return unless request_line
+
       request_line.chomp!
 
       regex = %r[\A(?<request_method>\S+)\s+    # GET, POST, etc
