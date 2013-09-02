@@ -12,7 +12,6 @@ class FileApp
     puts "process #{Process.pid} \nenv: #{env}"
     request = Parser.parse(env[:socket])
     #TODO приложение для отправки файлов в body
-
     [200, {'Content-Type' => ['text/html; charset=utf-8']}, ['get from rack!']]
   end
 
