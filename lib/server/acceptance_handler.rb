@@ -32,8 +32,4 @@ module Server
         retry
       end
   end
-
-  def asd
-    'asdasd'
-  end
 end
