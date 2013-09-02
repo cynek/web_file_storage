@@ -2,22 +2,11 @@
 # encoding: utf-8
 require 'socket'
 require "sleepy_penguin/sp"
-require File.expand_path "lib/server", File.dirname(__FILE__)
+require File.expand_path "lib/reactor", File.dirname(__FILE__)
+require File.expand_path "lib/file_connection", File.dirname(__FILE__)
 
 PORT = 8080
 HOST = 'localhost'
-WORKERS_COUNT = 2
 
-listener = TCPServer.new(HOST, PORT)
 
-WORKERS_COUNT.times do
-  fork do
-    Server::AcceptanceHandler.new(listener)
-    loop do
-      Server::InitiationDispatcher.instance.handle_events
-    end
-  end
-end
-
-Process.waitall
-listener.close
+Reactor.start(HOST, PORT, FileConnection)

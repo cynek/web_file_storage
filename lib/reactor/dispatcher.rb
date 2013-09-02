@@ -2,9 +2,9 @@
 require 'singleton'
 require 'set'
 
-module Server
+module Reactor
   # Регистриует и уведомляет хэндлеры о событиях
-  class InitiationDispatcher
+  class Dispatcher
     include Singleton
 
     def initialize
@@ -16,8 +16,9 @@ module Server
       @epoll = SP::Epoll.new
     end
 
+    # Включить хэндлер в обработку событий
     def register_handler(event_handler, event_types)
-      socket = event_handler.get_handle
+      socket = event_handler.handle
       flags = event_types.inject(0) {|flags, event| flags | event }
 
       if @socket_handlers.include?(socket)
@@ -31,10 +32,11 @@ module Server
       end
     end
 
-    def remove_handler(event_handler, event_type)
-      # TODO: сделать возможность передавать несколько событий
+    # Отключить наблюдение за событием хэндлера
+    def remove_handler_event(event_handler, event_type)
+      # TODO: сделать возможность удалять сразу несколько событий
 
-      socket = event_handler.get_handle
+      socket = event_handler.handle
       @socket_handlers[socket][event_type].delete event_handler
 
       # если на сокете не осталось других обработчиков этого типа
@@ -50,6 +52,13 @@ module Server
           @epoll.mod(socket, @epoll.events_for(socket) & ~event_type)
         end
       end
+    end
+
+    # Исключить хэндлер
+    def remove_handler(event_handler)
+      socket = event_handler.handle
+      @socket_handlers.delete(socket)
+      @epoll.del(socket)
     end
 
     def handle_events(timeout = 0)
