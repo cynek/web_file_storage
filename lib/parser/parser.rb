@@ -22,7 +22,9 @@ module Parser
   class << self
     def parse_request_line(socket)
       # определить метод и URI
-      request_line = socket.gets.chomp
+      request_line = socket.gets
+      return unless request_line
+      request_line.chomp!
 
       regex = %r[\A(?<request_method>\S+)\s+    # GET, POST, etc
                  (?<uri>\/\S+)\s+\S+]x          # URI & tail
@@ -45,7 +47,7 @@ module Parser
                         \s*(?<header_value>.*?)\s*\z]x                  # header value
 
       loop do
-        line = socket.gets
+        line = socket.gets      
         break if empty_line.match(line) || line.nil?
 
         match_data = header_regex.match line
