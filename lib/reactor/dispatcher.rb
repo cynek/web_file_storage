@@ -12,7 +12,6 @@ module Reactor
       @socket_handlers = Hash.new do |events, socket|
         events[socket] = Hash.new {|handlers, event| handlers[event] = Set.new }
       end
-
       @epoll = SP::Epoll.new
     end
 
@@ -54,14 +53,14 @@ module Reactor
       end
     end
 
-    # Исключить хэндлер
+    # Отключить хэндлер
     def remove_handler(event_handler)
       socket = event_handler.handle
       @socket_handlers.delete(socket)
       @epoll.del(socket)
     end
 
-    def handle_events(timeout = 0)
+    def handle_events
       @epoll.wait do |event, socket|
         @socket_handlers[socket][event].each do |handler|
           handler.handle_event event
