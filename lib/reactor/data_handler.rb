@@ -12,7 +12,7 @@ module Reactor
     def handle_event(event)
       case event
         when SP::Epoll::IN
-          while data = handle.recv(DATA_BLOCK_SIZE)
+          while !handle.closed? && data = handle.recv(DATA_BLOCK_SIZE)
             connection_handler.receive_data data
           end
         when SP::Epoll::ERR, SP::Epoll::HUP
@@ -30,6 +30,7 @@ module Reactor
     private
 
     def before_watch
+      # инициализация хэндлера подключения
       @connection_handler = connection_handler_class.new(self.object_id, &connection_handler_initializer)
     end
   end

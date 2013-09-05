@@ -9,7 +9,8 @@ module Reactor
     #
     # socket - TCPSocket
     # connection_handler_class - Connection класс для обратных вызовов
-    # &initializer - Proc для инициализации connection_handler_class
+    # initializer - блок инициализации connection_handler_class
+    #
     def initialize(socket, connection_handler_class, &initializer)
       @connection_handler_class = connection_handler_class
       @connection_handler_initializer = initializer
@@ -32,11 +33,16 @@ module Reactor
     class << self
       attr_accessor :events
 
-      # регистрация событий Epoll получаемых хэндлером
+      # регистрация событий SP::Epoll получаемых хэндлером
+      #
+      # events - Integer
       #
       # Examples:
       #
-      #   watch_for SP::Epoll::IN, SP::Epoll::ERR
+      #   class LoggerHandler
+      #     watch_for SP::Epoll::IN, SP::Epoll::ERR
+      #     ...
+      #   end
       #
       def watch_for(*events)
         raise ArgumentError, "Choose at least 1 event for watching" if events.empty?

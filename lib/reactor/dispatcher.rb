@@ -60,6 +60,7 @@ module Reactor
       @epoll.del(socket)
     end
 
+    # Оповещение хэндлеров
     def handle_events
       @epoll.wait do |event, socket|
         @socket_handlers[socket][event].each do |handler|

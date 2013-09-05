@@ -1,9 +1,10 @@
 require "sleepy_penguin/sp"
-require File.expand_path 'reactor/dispatcher', File.dirname(__FILE__)
-require File.expand_path 'reactor/event_handler', File.dirname(__FILE__)
-require File.expand_path 'reactor/acceptance_handler', File.dirname(__FILE__)
-require File.expand_path 'reactor/data_handler', File.dirname(__FILE__)
-require File.expand_path 'reactor/connection', File.dirname(__FILE__)
+require "socket"
+require File.dirname(__FILE__) + '/reactor/dispatcher'
+require File.dirname(__FILE__) + '/reactor/event_handler'
+require File.dirname(__FILE__) + '/reactor/acceptance_handler'
+require File.dirname(__FILE__) + '/reactor/data_handler'
+require File.dirname(__FILE__) + '/reactor/connection'
 
 module Reactor
   WORKERS_COUNT = 2
@@ -15,11 +16,12 @@ module Reactor
     # host - String
     # port - Integer
     # connection_handler_class - Class реализующий интерфейс Connection для управления подключением
-    # &initialize - блок инициализации connection_handler'а
+    # workers_count - Integer количество воркеров
+    # initialize - блок инициализации connection_handler'а
     #
     # Examples:
     #
-    #   Reactor.start(HOST, PORT, FileServer, 5) do |connection|
+    #   Reactor.start(HOST, PORT, LoggerServer, 5) do |connection|
     #     connection.log = STDOUT
     #   end
     #

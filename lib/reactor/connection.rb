@@ -33,8 +33,14 @@ module Reactor
   #  end
   #
   class Connection
-    def initialize(handler_id, &initializer)
-      @handler_id = handler_id
+    # Вместо хэндлера данных получает его object_id для избежания циклических ссылок
+    # Доп. блок инициализации нужен, т.к. Connection инициализируется из хэндлера, а не при запуске сервера
+    #
+    # data_handler_id - Integer
+    # initializer - блок инициализации
+    #
+    def initialize(data_handler_id, &initializer)
+      @data_handler_id = data_handler_id
       initializer.call(self) if block_given?
     end
 
@@ -63,7 +69,7 @@ module Reactor
     private
 
     def handler
-      ObjectSpace._id2ref(@handler_id)
+      ObjectSpace._id2ref(@data_handler_id)
     end
   end
 end
