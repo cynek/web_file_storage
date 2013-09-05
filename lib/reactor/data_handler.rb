@@ -12,17 +12,15 @@ module Reactor
     def handle_event(event)
       case event
         when SP::Epoll::IN
-          while !handle.closed? && data = handle.recv(DATA_BLOCK_SIZE)
-            connection_handler.receive_data data
-          end
+          connection_handler.receive_data handle.recv(DATA_BLOCK_SIZE)
         when SP::Epoll::ERR, SP::Epoll::HUP
-          Dispatcher.instance.remove_handler self
+          dispatcher.remove_handler self
           connection_handler.unbind
       end
     end
 
     def close_connection
-      Dispatcher.instance.remove_handler self
+      dispatcher.remove_handler self
       handle.close
       connection_handler.connection_completed
     end

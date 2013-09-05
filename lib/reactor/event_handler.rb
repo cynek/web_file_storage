@@ -3,20 +3,22 @@
 module Reactor
   # Базовый класс для хэндлеров
   class EventHandler
-    attr_reader :handle, :connection_handler_class, :connection_handler_initializer
+    attr_reader :dispatcher, :handle, :connection_handler_class, :connection_handler_initializer
 
     # Хэндлеры регистрируют себя в диспетчере при инициализации
     #
-    # socket - TCPSocket
+    # dispatcher               - Dispatcher
+    # socket                   - TCPSocket
     # connection_handler_class - Connection класс для обратных вызовов
-    # initializer - блок инициализации connection_handler_class
+    # initializer              - блок инициализации connection_handler_class
     #
-    def initialize(socket, connection_handler_class, &initializer)
+    def initialize(dispatcher, socket, connection_handler_class, &initializer)
       @connection_handler_class = connection_handler_class
       @connection_handler_initializer = initializer
       @handle = socket
+      @dispatcher = dispatcher
       before_watch
-      Dispatcher.instance.register_handler(self, self.class.events)
+      @dispatcher.register_handler(self, self.class.events)
     end
 
     protected

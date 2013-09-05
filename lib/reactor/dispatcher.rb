@@ -1,12 +1,9 @@
 # encoding : utf-8
-require 'singleton'
 require 'set'
 
 module Reactor
   # Регистриует и уведомляет хэндлеры о событиях
   class Dispatcher
-    include Singleton
-
     def initialize
       # обработчики событий для каждого сокета
       @socket_handlers = Hash.new do |events, socket|

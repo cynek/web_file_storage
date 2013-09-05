@@ -10,7 +10,7 @@ module Reactor
       case event
         when SP::Epoll::IN
           accept_socket = accept_connection
-          DataHandler.new(accept_socket, connection_handler_class, &connection_handler_initializer)
+          DataHandler.new(@dispatcher, accept_socket, connection_handler_class, &connection_handler_initializer)
         when SP::Epoll::ERR, SP::Epoll::HUP
           Dispatcher.instance.remove_handler self
           @running = false
@@ -29,8 +29,7 @@ module Reactor
 
     def accept_connection
       handle.accept_nonblock
-    rescue IO::WaitReadable, Errno::EINTR
-      puts "SERVER SOCKET WAIT READABLE"
+    rescue Errno::EINTR, Errno::EAGAIN
       IO.select([handle])
       retry
     end

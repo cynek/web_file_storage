@@ -1,10 +1,10 @@
 require "sleepy_penguin/sp"
 require "socket"
-require File.dirname(__FILE__) + '/reactor/dispatcher'
-require File.dirname(__FILE__) + '/reactor/event_handler'
-require File.dirname(__FILE__) + '/reactor/acceptance_handler'
-require File.dirname(__FILE__) + '/reactor/data_handler'
-require File.dirname(__FILE__) + '/reactor/connection'
+require './lib/reactor/dispatcher'
+require './lib/reactor/event_handler'
+require './lib/reactor/acceptance_handler'
+require './lib/reactor/data_handler'
+require './lib/reactor/connection'
 
 module Reactor
   WORKERS_COUNT = 2
@@ -40,10 +40,11 @@ module Reactor
 
     def fork_connection(listener, connection_handler_class, &initializer)
       Process.fork do
-        accept_handler = AcceptanceHandler.new(listener, connection_handler_class, &initializer)
+        dispatcher = Dispatcher.new
+        accept_handler = AcceptanceHandler.new(dispatcher, listener, connection_handler_class, &initializer)
 
         while accept_handler.running?
-          Reactor::Dispatcher.instance.handle_events
+          dispatcher.handle_events
         end
       end
     end
