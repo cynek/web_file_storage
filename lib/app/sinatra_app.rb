@@ -1,6 +1,13 @@
 # encoding : utf-8
-require 'sinatra'
+require 'sinatra/base'
 
-get '/' do
-  'Hello world!'
+class SinatraApp < Sinatra::Base  
+  # test Sinatra application
+  get "/" do
+    'This is Sinatra!'
+  end
+
+  get "/hello/:id" do |id|
+    id
+  end    
 end

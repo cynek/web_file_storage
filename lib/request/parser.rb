@@ -7,13 +7,17 @@ module Parser
 #
 #  # socket: IO object
 #  request = Parser.parse(socket)
+#  #request[:request_method] - HTTP action
+#  #request[:uri] - запрошенный URI
+#  #request[:headers] - хеш headers
+#  #request[:socket] - IO 
 
   Request = Struct.new(:request_method, :uri, :headers, :socket)
 
   def self.parse(socket)
     # парсим данные, полученные в socket    
     request_method, uri = parse_request_line(socket)
-    headers = parse_headers(socket)    
+    headers = parse_headers(socket)  
     Request.new(request_method, uri, headers, socket)
   end
 
@@ -26,9 +30,8 @@ module Parser
       return unless request_line
 
       request_line.chomp!
-
-      regex = %r[\A(?<request_method>\S+)\s+    # GET, POST, etc
-                 (?<uri>\/\S+)\s+\S+]x          # URI & tail
+      regex = %r[\A(?<request_method>\S+)\s+        # GET, POST, etc
+                 (?<uri>\/?\S+)\s+(\S+)\z]x         # URI & tail
 
       match_data = regex.match request_line
       if match_data
@@ -41,7 +44,8 @@ module Parser
 
     def parse_headers(socket)
       # парсим заголовки
-      header = Hash.new { |h, k| h[k] = [] }
+      #header = Hash.new { |h, k| h[k] = [] }
+      header = Hash.new
 
       empty_line = /\A\r?\n\z/
       header_regex = %r[^(?<header_name>[A-Za-z0-9!\#$%&'*+\-.^_`|~]+): # header name
@@ -55,7 +59,7 @@ module Parser
         if match_data
           name = match_data[:header_name].chomp
           value = match_data[:header_value].chomp
-          header[name] << value
+          header[name] = value
         end
       end
 
