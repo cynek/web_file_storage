@@ -1,35 +1,56 @@
-require "sleepy_penguin/sp"
 require "socket"
 require './lib/reactor/dispatcher'
 require './lib/reactor/event_handler'
 require './lib/reactor/acceptance_handler'
 require './lib/reactor/data_handler'
-require './lib/reactor/connection'
+require './lib/reactor/manager'
 
 module Reactor
   WORKERS_COUNT = 2
-  attr_reader :listener, :workers_count
 
   class << self
     # Запуск TCP сервера
     #
-    # host - String
-    # port - Integer
-    # connection_handler_class - Class реализующий интерфейс Connection для управления подключением
-    # workers_count - Integer количество воркеров
-    # initialize - блок инициализации connection_handler'а
+    # @param host [String]
+    # @param port [Integer]
+    # @param data_handler_class [Class] подкласс DataHandler для получения/обработки данных
+    # @param workers_count [Integer] количество воркеров
+    # @yield [handler] блок инициализации DataHandler'а
     #
-    # Examples:
+    # @example:
     #
-    #   Reactor.start(HOST, PORT, LoggerServer, 5) do |connection|
-    #     connection.log = STDOUT
-    #   end
+    #    class Connection < Reactor::DataHandler
+    #      attr_accessor :app, :request
     #
-    def start(host, port, connection_handler_class = Connection, workers_count = WORKERS_COUNT, &initializer)
+    #      def before_init
+    #        @request = Request.new
+    #        @response = Response.new
+    #      end
+    #
+    #      def receive_data(data)
+    #        process if @request.parse(data)
+    #      rescue InvalidRequest => e
+    #        close_connection
+    #      end
+    #
+    #      def process
+    #        @response.status, @response.headers, @response.body = *@app.call(@request.env)
+    #        @response.each do |chunk|
+    #          send_data chunk
+    #        end
+    #        close_connection
+    #      end
+    #    end
+    #
+    #    Reactor.start(HOST, PORT, Connection, 5) do |handler|
+    #      handler.app = @app
+    #    end
+    #
+    def start(host, port, data_handler_class = DataHandler, workers_count = WORKERS_COUNT, &initializer)
       listener = TCPServer.new(host, port)
 
       workers_count.times do
-        fork_connection(listener, connection_handler_class, &initializer)
+        fork_connection(listener, data_handler_class, &initializer)
       end
 
       Process.waitall
@@ -38,14 +59,15 @@ module Reactor
 
     private
 
-    def fork_connection(listener, connection_handler_class, &initializer)
+    def fork_connection(listener, data_handler_class, &initializer)
       Process.fork do
         dispatcher = Dispatcher.new
-        accept_handler = AcceptanceHandler.new(dispatcher, listener, connection_handler_class, &initializer)
 
-        while accept_handler.running?
-          dispatcher.handle_events
-        end
+        # инициализируем принимающий подключения хэндлер
+        AcceptanceHandler.new(listener, Manager.new(dispatcher, data_handler_class, &initializer))
+
+        # запускаем цикл обработки событий
+        dispatcher.run
       end
     end
   end

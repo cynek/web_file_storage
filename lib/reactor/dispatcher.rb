@@ -1,69 +1,144 @@
 # encoding : utf-8
 require 'set'
+require "sleepy_penguin/sp"
 
 module Reactor
-  # Регистриует и уведомляет хэндлеры о событиях
+  READ_EVENT   = 1
+  WRITE_EVENT  = 2
+  ERROR_EVENT  = 4
+  HANGUP_EVENT = 8
+
   class Dispatcher
+    # Диспетчер регистриует и уведомляет хэндлеры о событиях
+
+    EPOLL_EVENTS = {
+        Reactor::READ_EVENT    => SP::Epoll::IN,
+        Reactor::WRITE_EVENT   => SP::Epoll::OUT,
+        Reactor::ERROR_EVENT   => SP::Epoll::ERR,
+        Reactor::HANGUP_EVENT  => SP::Epoll::HUP
+    }
+
     def initialize
-      # обработчики событий для каждого сокета
-      @socket_handlers = Hash.new do |events, socket|
-        events[socket] = Hash.new {|handlers, event| handlers[event] = Set.new }
+      @running = false
+      @handlers = Hash.new do |events, io|
+        events[io] = Hash.new {|handlers, event| handlers[event] = Set.new }
       end
+
       @epoll = SP::Epoll.new
     end
 
-    # Включить хэндлер в обработку событий
-    def register_handler(event_handler, event_types)
-      socket = event_handler.handle
-      flags = event_types.inject(0) {|flags, event| flags | event }
+    def running?
+      @running
+    end
 
-      if @socket_handlers.include?(socket)
-        @epoll.mod(socket, @epoll.events_for(socket) | flags)
-      else
-        @epoll.add(socket, flags)
+    # Главный цикл обработки событий
+    #
+    def run
+      raise RuntimeError, "already running" if running?
+      @running = true
+
+      while running?
+        handle_events
       end
+    ensure
+      @handlers.keys.each do |io|
+        io.close
+      end
+      @handlers.clear
+      @running = false
+    end
 
-      event_types.each do |event_type|
-        @socket_handlers[socket][event_type] << event_handler
+    # Подписать хэндлер
+    #
+    # @param handler [EventHandler]
+    # @param events [Array<Integer>] список событий, на которые нужно подписать
+    #
+    def register_handler(handler, events)
+      io = handler.handle
+
+      # включаем наблюдение
+      enable_events_for(events, io)
+
+      # заполняем список подписчиков
+      events.each do |event|
+        @handlers[io][event] << handler
       end
     end
 
-    # Отключить наблюдение за событием хэндлера
-    def remove_handler_event(event_handler, event_type)
-      # TODO: сделать возможность удалять сразу несколько событий
+    # Отписать хэндлер от события
+    #
+    # @param handler [EventHandler]
+    # @param event [Integer]
+    #
+    def remove_handler_event(handler, event)
+      io = handler.handle
 
-      socket = event_handler.handle
-      @socket_handlers[socket][event_type].delete event_handler
+      # исключаем из подписчиков
+      @handlers[io][event].delete handler
 
-      # если на сокете не осталось других обработчиков этого типа
-      if @socket_handlers[socket][event_type].empty?
-        @socket_handlers[socket].delete(event_type)
-
-        # отключаем наблюдение за сокетом, если обрабочиков на нем больше нет
-        if @socket_handlers[socket].empty?
-          @socket_handlers.delete socket
-          @epoll.del(socket)
-        # иначе отключаем наблюдение только за событием на этом сокете
-        else
-          @epoll.mod(socket, @epoll.events_for(socket) & ~event_type)
-        end
-      end
+      # отключаем наблюдение события IO, если на него больше никто не подписан
+      disable_event_for(event, io) if @handlers[io][event].empty?
     end
 
-    # Отключить хэндлер
-    def remove_handler(event_handler)
-      socket = event_handler.handle
-      @socket_handlers.delete(socket)
-      @epoll.del(socket)
-    end
-
-    # Оповещение хэндлеров
+    # Рассылка событий
     def handle_events
-      @epoll.wait do |event, socket|
-        @socket_handlers[socket][event].each do |handler|
-          handler.handle_event event
+      @epoll.wait do |event, io|
+        @handlers[io][event].each do |handler|
+          case event
+            when SP::Epoll::IN
+              handler.handle_read
+            when SP::Epoll::OUT
+              handler.handle_write
+            when SP::Epoll::ERR
+              handler.handle_error
+            when SP::Epoll::HUP
+              handler.handle_hangup
+          end
         end
       end
+    end
+
+    private
+
+    # Включаем наблюдение событий IO
+    #
+    # @param events [Array<Integer>]
+    # @param io [IO]
+    #
+    def enable_events_for(events, io)
+      epoll_flags = epoll_flags_from(events)
+
+      if @handlers.include?(io)
+        @epoll.mod(io, @epoll.events_for(io) | epoll_flags)
+      else
+        @epoll.add(io, epoll_flags)
+      end
+    end
+
+    # Отключаем наблюдение события IO
+    #
+    # @param event [Integer]
+    # @param io [IO]
+    #
+    def disable_event_for(event, io)
+      @handlers[io].delete(event)
+
+      # полностью отключаем наблюдение IO, если подписчиков на нем больше нет
+      if @handlers[io].empty?
+        disable_all_for(io)
+      # иначе отключаем наблюдение только за этим событием
+      else
+        @epoll.mod(io, @epoll.events_for(io) & ~EPOLL_EVENTS[event])
+      end
+    end
+
+    def disable_all_for(io)
+      @handlers.delete(io)
+      @epoll.del(io)
+    end
+
+    def epoll_flags_from(events)
+      events.inject(0) {|flags, event| flags | EPOLL_EVENTS[event] }
     end
   end
 end

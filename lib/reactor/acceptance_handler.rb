@@ -3,35 +3,26 @@
 module Reactor
   # Хэндлер подключения клиентов
   class AcceptanceHandler < EventHandler
-    watch_for SP::Epoll::IN, SP::Epoll::ERR, SP::Epoll::HUP
-    attr_reader :connections
+    for_events READ_EVENT, ERROR_EVENT, HANGUP_EVENT
+    def_delegator :manager, :data_handler_class
 
-    def handle_event(event)
-      case event
-        when SP::Epoll::IN
-          accept_socket = accept_connection
-          DataHandler.new(@dispatcher, accept_socket, connection_handler_class, &connection_handler_initializer)
-        when SP::Epoll::ERR, SP::Epoll::HUP
-          Dispatcher.instance.remove_handler self
-          @running = false
-      end
+    # обрабатывает событие чтения - подключение клиента
+    def handle_read
+      socket = accept_connection
+      data_handler_class.new(socket, manager) if socket
     end
 
-    def running?
-      @running
+    # обработчик ошибок
+    def handle_error
+      unsubscribe!
     end
+    alias :handle_hangup :handle_error
 
     private
 
-    def before_watch
-      @running = true
-    end
-
     def accept_connection
       handle.accept_nonblock
-    rescue Errno::EINTR, Errno::EAGAIN
-      IO.select([handle])
-      retry
+    rescue Errno::EWOULDBLOCK, Errno::EAGAIN
     end
   end
 end

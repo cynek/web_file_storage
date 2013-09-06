@@ -1,35 +1,77 @@
 # encoding : utf-8
 
 module Reactor
-  # Хэндлер получения данных от клиента
   class DataHandler < EventHandler
-    watch_for SP::Epoll::IN, SP::Epoll::ET, SP::Epoll::ERR, SP::Epoll::HUP
+    # Хэндлер получения/обработки данных от клиента
+    # подклассам нужно реализовать следующие методы
+    #
+    #  #before_init          - вызывается при инициализации
+    #  #receive_data(chunk)   - вызывается при получении данных
+    #  #connection_completed - вызывается при закрытии соединения
+    #  #unbind               - вызывается при обрыве соединения
+    #
+
+    for_events READ_EVENT, ERROR_EVENT, HANGUP_EVENT
 
     DATA_BLOCK_SIZE = 4096
 
-    attr_reader :connection_handler
+    protected
 
-    def handle_event(event)
-      case event
-        when SP::Epoll::IN
-          connection_handler.receive_data handle.recv(DATA_BLOCK_SIZE)
-        when SP::Epoll::ERR, SP::Epoll::HUP
-          dispatcher.remove_handler self
-          connection_handler.unbind
-      end
+    # вызывается при инициализации
+    def before_init
     end
 
+    # вызывается при получении данных
+    #
+    # @param chunk [String] прочитанный фрагмент
+    #
+    def receive_data(chunk)
+    end
+
+    # вызывается при закрытии соединения
+    def connection_completed
+    end
+
+    # вызывается при обрыве соединения
+    def unbind
+    end
+
+    # непереопределяемый!
+    def send_data(chunk)
+      # TODO: сделать буферизированную отправку
+      handle.print chunk
+    end
+
+    # непереопределяемый!
     def close_connection
-      dispatcher.remove_handler self
+      unsubscribe!
       handle.close
-      connection_handler.connection_completed
+      connection_completed
     end
+
+    public
+
+    # непереопределяемый!
+    # обработчик событий чтения
+    def handle_read
+      receive_data handle.recv(DATA_BLOCK_SIZE)
+    end
+
+    # непереопределяемый!
+    # обработчик ошибок
+    def handle_error
+      unbind
+      close_connection rescue nil
+    end
+    alias :handle_hangup :handle_error
 
     private
 
+    # у метода повышен модификатор доступа
+    # для подклассов определен соответствующий метод #before_init
     def before_watch
-      # инициализация хэндлера подключения
-      @connection_handler = connection_handler_class.new(self.object_id, &connection_handler_initializer)
+      manager.initializer.call(self) unless manager.initializer.nil?
+      before_init
     end
   end
 end
