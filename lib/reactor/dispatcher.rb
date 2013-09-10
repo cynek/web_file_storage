@@ -8,9 +8,8 @@ module Reactor
   ERROR_EVENT  = 4
   HANGUP_EVENT = 8
 
+  # Диспетчер регистриует и уведомляет хэндлеры о событиях
   class Dispatcher
-    # Диспетчер регистриует и уведомляет хэндлеры о событиях
-
     EPOLL_EVENTS = {
         Reactor::READ_EVENT    => SP::Epoll::IN,
         Reactor::WRITE_EVENT   => SP::Epoll::OUT,

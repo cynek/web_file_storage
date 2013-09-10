@@ -1,9 +1,11 @@
 require "socket"
-require './lib/reactor/dispatcher'
-require './lib/reactor/event_handler'
-require './lib/reactor/acceptance_handler'
-require './lib/reactor/data_handler'
-require './lib/reactor/manager'
+$:.unshift File.dirname(__FILE__)
+
+require 'reactor/dispatcher'
+require 'reactor/event_handler'
+require 'reactor/acceptance_handler'
+require 'reactor/data_handler'
+require 'reactor/manager'
 
 module Reactor
   WORKERS_COUNT = 2

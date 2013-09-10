@@ -1,16 +1,15 @@
 # encoding : utf-8
 
 module Reactor
+  # Хэндлер получения/обработки данных от клиента
+  # подклассам нужно реализовать следующие методы
+  #
+  #  #before_init          - вызывается при инициализации
+  #  #receive_data(chunk)  - вызывается при получении данных
+  #  #connection_completed - вызывается при закрытии соединения
+  #  #unbind               - вызывается при обрыве соединения
+  #
   class DataHandler < EventHandler
-    # Хэндлер получения/обработки данных от клиента
-    # подклассам нужно реализовать следующие методы
-    #
-    #  #before_init          - вызывается при инициализации
-    #  #receive_data(chunk)   - вызывается при получении данных
-    #  #connection_completed - вызывается при закрытии соединения
-    #  #unbind               - вызывается при обрыве соединения
-    #
-
     for_events READ_EVENT, ERROR_EVENT, HANGUP_EVENT
 
     DATA_BLOCK_SIZE = 4096
@@ -37,6 +36,9 @@ module Reactor
     end
 
     # непереопределяемый!
+    #
+    # @param chunk [String]
+    #
     def send_data(chunk)
       # TODO: сделать буферизированную отправку
       handle.print chunk
