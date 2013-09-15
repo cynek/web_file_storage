@@ -2,7 +2,6 @@
 require 'set'
 require "sleepy_penguin/sp"
 
-
 module Reactor
   # Регистриует и уведомляет обработчики событий
   #
@@ -29,20 +28,20 @@ module Reactor
   #
   class Dispatcher
     CALLBACK_EVENTS = {
-        :read    => SP::Epoll::IN,
-        :write   => SP::Epoll::OUT,
-        :error   => SP::Epoll::ERR,
-        :hangup  => SP::Epoll::HUP
+      :read    => SP::Epoll::IN,
+      :write   => SP::Epoll::OUT,
+      :error   => SP::Epoll::ERR,
+      :hangup  => SP::Epoll::HUP
     }
 
     def initialize
       @running = false
       @handlers = Hash.new do |handlers, io|
         handlers[io] = {
-            SP::Epoll::IN  => nil,
-            SP::Epoll::OUT => nil,
-            SP::Epoll::ERR => nil,
-            SP::Epoll::HUP => nil
+          SP::Epoll::IN  => nil,
+          SP::Epoll::OUT => nil,
+          SP::Epoll::ERR => nil,
+          SP::Epoll::HUP => nil
         }
       end
 
